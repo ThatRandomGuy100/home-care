@@ -1,0 +1,66 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Caregiver {
+  id        String   @id @default(uuid())
+  name      String
+  phone     String
+  visits    Visit[]
+  createdAt DateTime @default(now())
+}
+
+model Patient {
+  id        String   @id @default(uuid())
+  name      String
+  visits    Visit[]
+  createdAt DateTime @default(now())
+}
+
+model Visit {
+  id            String   @id @default(uuid())
+  caregiverId  String
+  patientId    String
+  startTime    DateTime
+  endTime      DateTime
+  clockInDone  Boolean  @default(false)
+  clockOutDone Boolean  @default(false)
+
+  caregiver Caregiver @relation(fields: [caregiverId], references: [id])
+  patient   Patient   @relation(fields: [patientId], references: [id])
+  smsJobs   SmsJob[]
+
+  createdAt DateTime @default(now())
+}
+
+model SmsJob {
+  id         String   @id @default(uuid())
+  visitId   String
+  type       SmsType
+  sendAt     DateTime
+  status     SmsStatus @default(PENDING)
+  retryCount Int       @default(0)
+  lastError  String?
+
+  visit Visit @relation(fields: [visitId], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
+enum SmsType {
+  CLOCK_IN_BEFORE
+  CLOCK_IN_AFTER
+  CLOCK_OUT_BEFORE
+  CLOCK_OUT_AFTER
+}
+
+enum SmsStatus {
+  PENDING
+  SENT
+  FAILED
+}
