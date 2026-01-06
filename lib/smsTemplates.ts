@@ -1,25 +1,33 @@
 import { SmsType } from "@prisma/client";
-import dayjs from "dayjs";
 
 export function buildSmsMessage(
   type: SmsType,
   patientName: string,
-  time: Date
-) {
-  const formattedTime = dayjs(time).format("hh:mm A");
+  startTime: Date,
+  endTime: Date
+): string {
+  const start = startTime.toLocaleTimeString("en-IN", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  const end = endTime.toLocaleTimeString("en-IN", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 
   switch (type) {
     case "CLOCK_IN_BEFORE":
-      return `Please perform your ClockIN for ${patientName} at ${formattedTime}.`;
+      return `Please perform your ClockIN for ${patientName} at ${start}.`;
 
     case "CLOCK_IN_AFTER":
-      return `Gentle Reminder – Do not forget to ClockIN for ${patientName}.`;
+      return `Gentle Reminder: Please ClockIN for ${patientName}.`;
 
     case "CLOCK_OUT_BEFORE":
-      return `Please perform your ClockOUT for ${patientName} at ${formattedTime}.`;
+      return `Please perform your ClockOUT for ${patientName} at ${end}.`;
 
     case "CLOCK_OUT_AFTER":
-      return `Gentle Reminder – Do not forget to ClockOUT for ${patientName}.`;
+      return `Gentle Reminder: Please ClockOUT for ${patientName}.`;
 
     default:
       return "";
