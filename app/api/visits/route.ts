@@ -94,3 +94,34 @@ export async function POST(req: Request) {
     );
   }
 }
+
+export async function GET() {
+  const visits = await prisma.visit.findMany({
+    orderBy: { startTime: "desc" },
+    take: 50,
+    include: {
+      caregiver: {
+        select: { name: true },
+      },
+      patient: {
+        select: { name: true },
+      },
+      smsJobs: {
+        select: { status: true },
+      },
+    },
+  });
+
+  // 🔑 Explicit serialization (THIS FIXES TURBOPACK)
+  const safeVisits = visits.map((v) => ({
+    id: v.id,
+    startTime: v.startTime.toISOString(),
+    endTime: v.endTime.toISOString(),
+    caregiver: v.caregiver,
+    patient: v.patient,
+    smsJobs: v.smsJobs,
+  }));
+
+  return Response.json(safeVisits);
+}
+
