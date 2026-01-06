@@ -4,9 +4,22 @@ import { generateSmsSchedule } from "@/lib/smsScheduler";
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { caregiverId, patientId, startTime, endTime } = body;
 
-    if (!caregiverId || !patientId || !startTime || !endTime) {
+    const {
+      externalVisitId,
+      caregiverId,
+      patientId,
+      startTime,
+      endTime,
+    } = body;
+
+    if (
+      !externalVisitId ||
+      !caregiverId ||
+      !patientId ||
+      !startTime ||
+      !endTime
+    ) {
       return Response.json(
         { error: "Missing required fields" },
         { status: 400 }
@@ -16,6 +29,13 @@ export async function POST(req: Request) {
     const start = new Date(startTime);
     const end = new Date(endTime);
 
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      return Response.json(
+        { error: "Invalid date format" },
+        { status: 400 }
+      );
+    }
+
     if (start >= end) {
       return Response.json(
         { error: "startTime must be before endTime" },
@@ -23,12 +43,26 @@ export async function POST(req: Request) {
       );
     }
 
+    // 2️⃣ Idempotency check (VERY IMPORTANT)
+    const existingVisit = await prisma.visit.findUnique({
+      where: { externalVisitId },
+    });
+
+    if (existingVisit) {
+      return Response.json({
+        success: true,
+        visitId: existingVisit.id,
+        message: "Visit already exists (idempotent)",
+      });
+    }
+
+    // 3️⃣ Generate SMS schedule
     const smsSchedule = generateSmsSchedule(start, end);
 
     const visit = await prisma.$transaction(async (tx) => {
-      // 1️⃣ Create Visit
       const createdVisit = await tx.visit.create({
         data: {
+          externalVisitId,
           caregiverId,
           patientId,
           startTime: start,
@@ -36,7 +70,6 @@ export async function POST(req: Request) {
         },
       });
 
-      // 2️⃣ Create SMS Jobs
       await tx.smsJob.createMany({
         data: smsSchedule.map((job) => ({
           visitId: createdVisit.id,

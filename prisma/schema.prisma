@@ -11,6 +11,7 @@ model Caregiver {
   id        String   @id @default(uuid())
   name      String
   phone     String
+   externalCode String   @unique
   visits    Visit[]
   createdAt DateTime @default(now())
 }
@@ -18,12 +19,14 @@ model Caregiver {
 model Patient {
   id        String   @id @default(uuid())
   name      String
+  admissionId  String   @unique 
   visits    Visit[]
   createdAt DateTime @default(now())
 }
 
 model Visit {
   id            String   @id @default(uuid())
+  externalVisitId  String   @unique
   caregiverId  String
   patientId    String
   startTime    DateTime
