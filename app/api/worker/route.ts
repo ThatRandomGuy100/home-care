@@ -4,8 +4,8 @@ import { buildSmsMessage } from "@/lib/smsTemplates";
 import { SmsStatus } from "@prisma/client";
 
 export async function GET() {
+  console.log("🕒 Worker tick", new Date().toISOString());
   const now = new Date();
-
   // 1️⃣ Pull ALL pending jobs that should have been sent already
   const jobs = await prisma.smsJob.findMany({
     where: {
