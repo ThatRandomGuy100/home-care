@@ -94,14 +94,34 @@ export default function VisitsPage() {
   }, {} as Record<string, Visit[]>);
 
   const getSmsStatus = (jobs: Visit["smsJobs"]) => {
-    const hasFailed = jobs.some(j => j.status === "FAILED");
-    const hasPending = jobs.some(j => j.status === "PENDING");
+    const sentCount = jobs.filter(j => j.status === "SENT").length;
+    const pendingCount = jobs.filter(j => j.status === "PENDING").length;
+    const failedCount = jobs.filter(j => j.status === "FAILED").length;
+    const totalCount = jobs.length;
 
-    if (hasFailed)
-      return { label: "SMS Failed", icon: <AlertCircleIcon />, className: "bg-rose-100 text-rose-700" };
-    if (hasPending)
-      return { label: "SMS Pending", icon: <HourglassIcon />, className: "bg-amber-100 text-amber-700" };
-    return { label: "All Sent", icon: <CheckCircleIcon />, className: "bg-emerald-100 text-emerald-700" };
+    if (failedCount > 0) {
+      return {
+        label: failedCount === totalCount
+          ? "SMS Failed"
+          : `${sentCount} Sent, ${pendingCount} Pending, ${failedCount} Failed`,
+        icon: <AlertCircleIcon />,
+        className: "bg-rose-100 text-rose-700"
+      };
+    }
+
+    if (pendingCount > 0) {
+      return {
+        label: `${sentCount} Sent, ${pendingCount} Pending`,
+        icon: <HourglassIcon />,
+        className: "bg-amber-100 text-amber-700"
+      };
+    }
+
+    return {
+      label: "All Sent",
+      icon: <CheckCircleIcon />,
+      className: "bg-emerald-100 text-emerald-700"
+    };
   };
 
   if (loading) {
