@@ -17,8 +17,6 @@ type Visit = {
   smsJobs: { status: "PENDING" | "SENT" | "FAILED" }[];
 };
 
-type TimezoneMode = "US" | "LOCAL";
-
 /* ================= ICONS ================= */
 
 const ArrowLeftIcon = () => (
@@ -62,7 +60,6 @@ const HourglassIcon = () => (
 export default function VisitsPage() {
   const [visits, setVisits] = useState<Visit[]>([]);
   const [loading, setLoading] = useState(true);
-  const [timezoneMode, setTimezoneMode] = useState<TimezoneMode>("US");
 
   useEffect(() => {
     api<Visit[]>("/api/visits")
@@ -73,19 +70,8 @@ export default function VisitsPage() {
 
   /* ===== Time formatter ===== */
   const formatTime = (time: string) => {
-    const date = new Date(time);
-
-    if (timezoneMode === "US") {
-      return date.toLocaleTimeString("en-US", {
-        timeZone: "America/New_York",
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: true,
-      });
-    }
-
-    return date.toLocaleTimeString("en-IN", {
-      timeZone: "Asia/Kolkata",
+    return new Date(time).toLocaleTimeString("en-US", {
+      timeZone: "America/New_York",
       hour: "2-digit",
       minute: "2-digit",
       hour12: true,
@@ -123,15 +109,9 @@ export default function VisitsPage() {
       <div className="min-h-screen gradient-mesh">
         <div className="max-w-4xl mx-auto p-6 space-y-6">
           {/* Header skeleton */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-muted animate-pulse" />
-              <div className="h-8 w-32 rounded-lg bg-muted animate-pulse" />
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="h-6 w-20 rounded-full bg-muted animate-pulse" />
-              <div className="h-6 w-20 rounded-full bg-muted animate-pulse" />
-            </div>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-muted animate-pulse" />
+            <div className="h-8 w-32 rounded-lg bg-muted animate-pulse" />
           </div>
 
           {/* Date skeleton */}
@@ -167,40 +147,13 @@ export default function VisitsPage() {
       <div className="max-w-4xl mx-auto p-6 space-y-6">
 
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link href="/dashboard">
-              <Button size="icon" variant="outline">
-                <ArrowLeftIcon />
-              </Button>
-            </Link>
-            <h1 className="text-3xl font-bold">Visits</h1>
-          </div>
-
-          {/* Timezone Toggle */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">Timezone:</span>
-            <button
-              onClick={() => setTimezoneMode("US")}
-              className={`px-3 py-1 rounded-full text-xs border ${
-                timezoneMode === "US"
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground"
-              }`}
-            >
-              US (EST)
-            </button>
-            <button
-              onClick={() => setTimezoneMode("LOCAL")}
-              className={`px-3 py-1 rounded-full text-xs border ${
-                timezoneMode === "LOCAL"
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground"
-              }`}
-            >
-              Local (IST)
-            </button>
-          </div>
+        <div className="flex items-center gap-3">
+          <Link href="/dashboard">
+            <Button size="icon" variant="outline">
+              <ArrowLeftIcon />
+            </Button>
+          </Link>
+          <h1 className="text-3xl font-bold">Visits</h1>
         </div>
 
         {/* Visits */}
@@ -216,7 +169,7 @@ export default function VisitsPage() {
                   <CardContent className="p-4 flex gap-4">
                     <div className="w-28 text-center">
                       <div className="text-xs text-muted-foreground">
-                        Time ({timezoneMode === "US" ? "EST" : "IST"})
+                        Time (EST)
                       </div>
                       <div className="font-semibold">{formatTime(visit.startTime)}</div>
                       <div className="text-xs">to</div>
