@@ -1,6 +1,6 @@
 import twilio from "twilio";
 
-const client = twilio(
+export const twilioClient = twilio(
   process.env.TWILIO_ACCOUNT_SID!,
   process.env.TWILIO_AUTH_TOKEN!
 );
@@ -10,7 +10,7 @@ export async function sendSms(to: string, body: string) {
     throw new Error("TWILIO_FROM_NUMBER not set");
   }
 
-  return client.messages.create({
+  return twilioClient.messages.create({
     to,
     from: process.env.TWILIO_FROM_NUMBER,
     body,

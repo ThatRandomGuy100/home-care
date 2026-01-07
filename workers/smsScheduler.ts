@@ -31,9 +31,8 @@ export function startSmsScheduler() {
         const message = buildSmsMessage(
           job.type,
           job.visit.patient.name,
-          job.type.includes("IN")
-            ? job.visit.startTime
-            : job.visit.endTime
+          job.visit.startTime,
+  job.visit.endTime,
         );
 
         await twilioClient.messages.create({
