@@ -2,6 +2,8 @@ import { prisma } from "@/lib/prisma";
 import { sendSms } from "@/lib/twilio";
 import { buildSmsMessage } from "@/lib/smsTemplates";
 import { SmsStatus } from "@prisma/client";
+import * as Sentry from "@sentry/nextjs";
+
 
 export async function GET() {
   console.log("🕒 Worker tick", new Date().toISOString());
