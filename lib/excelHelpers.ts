@@ -1,22 +1,22 @@
 export function normalizePhone(phone: string): string {
-  // Excel may give scientific notation or spaces
   const raw = phone.toString().trim();
-
-  if (!raw.startsWith("+1")) {
-    throw new Error(
-      `Phone number must be US E.164 format (+1XXXXXXXXXX): ${phone}`
-    );
-  }
-
   const cleaned = raw.replace(/\D/g, "");
 
-  // +1 + 10 digits = 11 digits total
-  if (cleaned.length !== 11) {
-    throw new Error(`Invalid US phone number length: ${phone}`);
+  // US number: +1XXXXXXXXXX → 11 digits
+  if (raw.startsWith("+1") && cleaned.length === 11) {
+    return `+${cleaned}`;
   }
 
-  return `+${cleaned}`;
+  // India number: +91XXXXXXXXXX → 12 digits
+  if (raw.startsWith("+91") && cleaned.length === 12) {
+    return `+${cleaned}`;
+  }
+
+  throw new Error(
+    `Invalid phone number. Expected +1XXXXXXXXXX or +91XXXXXXXXXX: ${phone}`
+  );
 }
+
 
   
 export function parseTimeRange(
