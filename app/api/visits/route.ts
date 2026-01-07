@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { generateSmsSchedule } from "@/lib/smsScheduler";
+import * as Sentry from "@sentry/nextjs";
 
 export async function POST(req: Request) {
   try {
@@ -87,6 +88,7 @@ export async function POST(req: Request) {
     });
   } catch (error) {
     console.error("VISIT_CREATE_ERROR", error);
+    Sentry.captureException(error);
 
     return Response.json(
       { error: "Internal server error" },
