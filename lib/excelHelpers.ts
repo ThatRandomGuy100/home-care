@@ -1,21 +1,20 @@
-export function normalizePhone(phone: string): string {
+export function normalizePhone(phone: any): string {
+  if (!phone) {
+    throw new Error("Phone number missing");
+  }
+
   const raw = phone.toString().trim();
   const cleaned = raw.replace(/\D/g, "");
 
-  // US number: +1XXXXXXXXXX → 11 digits
-  if (raw.startsWith("+1") && cleaned.length === 11) {
-    return `+${cleaned}`;
-  }
-
-  // India number: +91XXXXXXXXXX → 12 digits
-  if (raw.startsWith("+91") && cleaned.length === 12) {
+  if (cleaned.length === 11 && cleaned.startsWith("1")) {
     return `+${cleaned}`;
   }
 
   throw new Error(
-    `Invalid phone number. Expected +1XXXXXXXXXX or +91XXXXXXXXXX: ${phone}`
+    `Invalid US phone number. Expected +1XXXXXXXXXX: ${phone}`
   );
 }
+
 
 
   

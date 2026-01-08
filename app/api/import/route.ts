@@ -25,7 +25,25 @@ export async function POST(req: Request) {
         // ✅ Normalize & trim Excel values
         const caregiverName = row["Caregiver "]?.toString().trim();
         const caregiverCode = row["Code"]?.toString().trim();
-        const caregiverPhone = normalizePhone(row["Mobile Number"]);
+        
+        const rawPhone = row["Mobile Number"];
+
+if (!rawPhone) {
+  console.warn("SKIPPED_ROW_NO_PHONE", row);
+  skipped++;
+  continue;
+}
+
+let caregiverPhone: string;
+
+try {
+  caregiverPhone = normalizePhone(rawPhone);
+} catch (err) {
+  console.warn("SKIPPED_ROW_INVALID_PHONE", row);
+  skipped++;
+  continue;
+}
+
     
         const patientName = row["Patient "]?.toString().trim();
         const admissionId = row["Admission ID"]?.toString().trim();
