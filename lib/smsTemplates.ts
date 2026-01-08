@@ -1,20 +1,23 @@
 import { SmsType } from "@prisma/client";
 
+function formatUSTime(date: Date) {
+  return date.toLocaleTimeString("en-US", {
+    timeZone: "America/New_York",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
+}
+
+
 export function buildSmsMessage(
   type: SmsType,
   patientName: string,
   startTime: Date,
   endTime: Date
 ): string {
-  const start = startTime.toLocaleTimeString("en-IN", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-
-  const end = endTime.toLocaleTimeString("en-IN", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const start = formatUSTime(startTime);
+  const end = formatUSTime(endTime);
 
   switch (type) {
     case "CLOCK_IN_BEFORE":
