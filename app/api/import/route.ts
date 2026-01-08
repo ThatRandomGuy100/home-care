@@ -22,55 +22,82 @@ export async function POST(req: Request) {
 
     for (const row of rows) {
       try {
+        // ✅ Normalize & trim Excel values
+        const caregiverName = row["Caregiver "]?.toString().trim();
+        const caregiverCode = row["Code"]?.toString().trim();
+        const caregiverPhone = normalizePhone(row["Mobile Number"]);
+    
+        const patientName = row["Patient "]?.toString().trim();
+        const admissionId = row["Admission ID"]?.toString().trim();
+    
+        const visitId = row["Visit ID"]?.toString().trim();
+        const visitDate = row["Visit Date"];
+        const scheduled = row["Scheduled"];
+    
+        // 🚨 Hard validation (VERY IMPORTANT)
+        if (!caregiverName || !caregiverCode || !caregiverPhone) {
+          throw new Error("Invalid caregiver data");
+        }
+    
+        if (!patientName || !admissionId) {
+          throw new Error("Invalid patient data");
+        }
+    
+        if (!visitId || !visitDate || !scheduled) {
+          throw new Error("Invalid visit data");
+        }
+    
+        // ✅ Caregiver upsert
         const caregiver = await prisma.caregiver.upsert({
-          where: { externalCode: row["Code"] },
+          where: { externalCode: caregiverCode },
           update: {
-            name: row["Caregiver"],
-            phone: normalizePhone(row["Mobile Number"]),
+            name: caregiverName,
+            phone: caregiverPhone,
           },
           create: {
-            name: row["Caregiver"],
-            phone: normalizePhone(row["Mobile Number"]),
-            externalCode: row["Code"],
+            name: caregiverName,
+            phone: caregiverPhone,
+            externalCode: caregiverCode,
           },
         });
-
+    
+        // ✅ Patient upsert
         const patient = await prisma.patient.upsert({
-          where: { admissionId: row["Admission ID"] },
+          where: { admissionId },
           update: {
-            name: row["Patient"],
+            name: patientName,
           },
           create: {
-            name: row["Patient"],
-            admissionId: row["Admission ID"],
+            name: patientName,
+            admissionId,
           },
         });
-
-        const { start, end } = parseTimeRange(
-          row["Visit Date"],
-          row["Scheduled"]
-        );
-
+    
+        // ✅ Time parsing
+        const { start, end } = parseTimeRange(visitDate, scheduled);
+    
+        // ✅ Idempotency
         const existingVisit = await prisma.visit.findUnique({
-          where: { externalVisitId: row["Visit ID"] },
+          where: { externalVisitId: visitId },
         });
-
+    
         if (existingVisit) {
           skipped++;
           continue;
         }
-
+    
+        // ✅ Transaction
         await prisma.$transaction(async (tx) => {
           const visit = await tx.visit.create({
             data: {
-              externalVisitId: row["Visit ID"],
+              externalVisitId: visitId,
               caregiverId: caregiver.id,
               patientId: patient.id,
               startTime: start,
               endTime: end,
             },
           });
-
+    
           await tx.smsJob.createMany({
             data: [
               { visitId: visit.id, type: "CLOCK_IN_BEFORE", sendAt: new Date(start.getTime() - 5 * 60000) },
@@ -80,12 +107,14 @@ export async function POST(req: Request) {
             ],
           });
         });
-
+    
         created++;
       } catch (rowError) {
         console.error("ROW_FAILED", row, rowError);
+        skipped++;
       }
     }
+    
 
     return Response.json({
       success: true,
