@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
-import { normalizePhone, parseTimeRange } from "@/lib/excelHelpers";
+import { normalizePhone, parseTimeRange, formatUSDateTime } from "@/lib/excelHelpers";
 import * as XLSX from "xlsx";
+import { SmsType } from "@prisma/client";
 
 export async function POST(req: Request) {
   try {
@@ -115,15 +116,36 @@ try {
               endTime: end,
             },
           });
-    
-          await tx.smsJob.createMany({
-            data: [
-              { visitId: visit.id, type: "CLOCK_IN_BEFORE", sendAt: new Date(start.getTime() - 5 * 60000) },
-              { visitId: visit.id, type: "CLOCK_IN_AFTER", sendAt: new Date(start.getTime() + 5 * 60000) },
-              { visitId: visit.id, type: "CLOCK_OUT_BEFORE", sendAt: new Date(end.getTime() - 5 * 60000) },
-              { visitId: visit.id, type: "CLOCK_OUT_AFTER", sendAt: new Date(end.getTime() + 5 * 60000) },
-            ],
-          });
+
+          // Generate SMS job schedule - only include jobs where sendAt is in the future
+          const now = new Date();
+          const potentialJobs: { type: SmsType; sendAt: Date }[] = [
+            { type: SmsType.CLOCK_IN_BEFORE, sendAt: new Date(start.getTime() - 5 * 60000) },
+            { type: SmsType.CLOCK_IN_AFTER, sendAt: new Date(start.getTime() + 5 * 60000) },
+            { type: SmsType.CLOCK_OUT_BEFORE, sendAt: new Date(end.getTime() - 5 * 60000) },
+            { type: SmsType.CLOCK_OUT_AFTER, sendAt: new Date(end.getTime() + 5 * 60000) },
+          ];
+
+          // Filter out SMS jobs where sendAt is already in the past
+          const futureJobs = potentialJobs.filter((job) => job.sendAt > now);
+          const skippedJobCount = potentialJobs.length - futureJobs.length;
+
+          if (skippedJobCount > 0) {
+            console.warn(
+              `SKIPPED_PAST_SMS_JOBS: ${skippedJobCount} jobs for visit ${visitId} ` +
+              `(sendAt already passed). Visit times: ${formatUSDateTime(start)} - ${formatUSDateTime(end)}`
+            );
+          }
+
+          if (futureJobs.length > 0) {
+            await tx.smsJob.createMany({
+              data: futureJobs.map((job) => ({
+                visitId: visit.id,
+                type: job.type,
+                sendAt: job.sendAt,
+              })),
+            });
+          }
         });
     
         created++;

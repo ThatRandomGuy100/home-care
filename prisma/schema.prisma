@@ -66,4 +66,5 @@ enum SmsStatus {
   PENDING
   SENT
   FAILED
+  SKIPPED
 }
