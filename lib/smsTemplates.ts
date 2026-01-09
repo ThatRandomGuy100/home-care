@@ -21,16 +21,16 @@ export function buildSmsMessage(
 
   switch (type) {
     case "CLOCK_IN_BEFORE":
-      return `Please perform your ClockIN for ${patientName} at ${start}.`;
+      return `Caregiver Pro Reminder: You are scheduled for ${patientName} at ${start}. Please remember to Clock In.`;
 
     case "CLOCK_IN_AFTER":
-      return `Gentle Reminder: Please ClockIN for ${patientName}.`;
+      return `Gentle Reminder: Please Clock In  for ${patientName}.`;
 
     case "CLOCK_OUT_BEFORE":
-      return `Please perform your ClockOUT for ${patientName} at ${end}.`;
+      return `Caregiver Pro Reminder: Your schedule ends at ${end}. Please remember to Clock Out.`;
 
     case "CLOCK_OUT_AFTER":
-      return `Gentle Reminder: Please ClockOUT for ${patientName}.`;
+      return `Gentle Reminder: Please Clock Out for ${patientName}.`;
 
     default:
       return "";
