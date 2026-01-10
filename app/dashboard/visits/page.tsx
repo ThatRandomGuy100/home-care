@@ -14,7 +14,7 @@ type Visit = {
   endTime: string;
   caregiver: { name: string };
   patient: { name: string };
-  smsJobs: { status: "PENDING" | "SENT" | "FAILED" }[];
+  smsJobs: { status: "PENDING" | "SENT" | "FAILED" | "SKIPPED" }[];
 };
 
 /* ================= ICONS ================= */
@@ -52,6 +52,12 @@ const AlertCircleIcon = () => (
 const HourglassIcon = () => (
   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+);
+
+const SkipIcon = () => (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
   </svg>
 );
 
@@ -97,15 +103,24 @@ export default function VisitsPage() {
     const sentCount = jobs.filter(j => j.status === "SENT").length;
     const pendingCount = jobs.filter(j => j.status === "PENDING").length;
     const failedCount = jobs.filter(j => j.status === "FAILED").length;
+    const skippedCount = jobs.filter(j => j.status === "SKIPPED").length;
     const totalCount = jobs.length;
 
     if (failedCount > 0) {
       return {
         label: failedCount === totalCount
           ? "SMS Failed"
-          : `${sentCount} Sent, ${pendingCount} Pending, ${failedCount} Failed`,
+          : `${sentCount} Sent, ${pendingCount} Pending, ${skippedCount} Skipped, ${failedCount} Failed`,
         icon: <AlertCircleIcon />,
         className: "bg-rose-100 text-rose-700"
+      };
+    }
+
+    if (skippedCount > 0) {
+      return {
+        label: `${sentCount} Sent, ${pendingCount} Pending, ${skippedCount} Skipped`,
+        icon: <SkipIcon />,
+        className: "bg-slate-100 text-slate-700"
       };
     }
 

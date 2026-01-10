@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -80,6 +81,24 @@ export default function ExcelImportPage() {
       }
 
       setResult(data);
+
+      if (data.success) {
+        if (data.skipped > 0) {
+          toast.warning(
+            `Import completed with ${data.skipped} skipped row${data.skipped > 1 ? "s" : ""}`,
+            {
+              description: `${data.created} visit${data.created !== 1 ? "s" : ""} created successfully.`,
+            }
+          );
+        } else {
+          toast.success(
+            `Successfully imported ${data.created} visit${data.created !== 1 ? "s" : ""}`,
+            {
+              description: "All visits have been imported successfully.",
+            }
+          );
+        }
+      }
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : "Import failed";
       setResult({
@@ -88,6 +107,10 @@ export default function ExcelImportPage() {
         skipped: 0,
         total: 0,
         error: errorMessage,
+      });
+      
+      toast.error("Import failed", {
+        description: errorMessage,
       });
     } finally {
       setLoading(false);

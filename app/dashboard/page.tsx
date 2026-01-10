@@ -10,6 +10,7 @@ type Stats = {
   visitsToday: number;
   pendingSms: number;
   failedSms: number;
+  skippedSms: number;
 };
 
 // Icons as SVG components
@@ -49,6 +50,12 @@ const HeartIcon = () => (
   </svg>
 );
 
+const SkipIcon = () => (
+  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5l7 7-7 7" />
+  </svg>
+);
+
 export default function Dashboard() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -83,6 +90,14 @@ export default function Dashboard() {
       color: "from-rose-500/20 to-red-500/10",
       iconBg: "bg-rose-500/10 text-rose-600 dark:text-rose-400",
       border: "border-rose-200/50 dark:border-rose-800/30",
+    },
+    {
+      label: "Skipped SMS",
+      value: stats?.skippedSms ?? 0,
+      icon: <SkipIcon />,
+      color: "from-slate-500/20 to-gray-500/10",
+      iconBg: "bg-slate-500/10 text-slate-600 dark:text-slate-400",
+      border: "border-slate-200/50 dark:border-slate-800/30",
     },
   ];
 
@@ -125,7 +140,7 @@ export default function Dashboard() {
         </header>
 
         {/* Stats Grid */}
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {statCards.map((stat, index) => (
             <Card
               key={stat.label}

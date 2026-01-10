@@ -29,21 +29,22 @@ export async function POST(req: Request) {
         
         const rawPhone = row["Mobile Number"];
 
-if (!rawPhone) {
-  console.warn("SKIPPED_ROW_NO_PHONE", row);
-  skipped++;
-  continue;
-}
+        // Skip if phone is missing, null, undefined, or empty/whitespace
+        if (!rawPhone || (typeof rawPhone === "string" && !rawPhone.trim())) {
+          console.warn("SKIPPED_ROW_NO_PHONE", row);
+          skipped++;
+          continue;
+        }
 
-let caregiverPhone: string;
+        let caregiverPhone: string;
 
-try {
-  caregiverPhone = normalizePhone(rawPhone);
-} catch (err) {
-  console.warn("SKIPPED_ROW_INVALID_PHONE", row);
-  skipped++;
-  continue;
-}
+        try {
+          caregiverPhone = normalizePhone(rawPhone);
+        } catch (err) {
+          console.warn("SKIPPED_ROW_INVALID_PHONE", row, err);
+          skipped++;
+          continue;
+        }
 
     
         const patientName = row["Patient "]?.toString().trim();
