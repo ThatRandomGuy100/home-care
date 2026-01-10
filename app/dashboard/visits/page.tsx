@@ -5,6 +5,14 @@ import Link from "next/link";
 import { api } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 /* ================= TYPES ================= */
 
@@ -61,18 +69,72 @@ const SkipIcon = () => (
   </svg>
 );
 
+const FilterIcon = () => (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+  </svg>
+);
+
+const ChevronDownIcon = () => (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+  </svg>
+);
+
 /* ================= COMPONENT ================= */
+
+type SmsStatusFilter = "ALL" | "PENDING" | "SENT" | "FAILED" | "SKIPPED";
 
 export default function VisitsPage() {
   const [visits, setVisits] = useState<Visit[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [smsStatusFilter, setSmsStatusFilter] = useState<SmsStatusFilter>("ALL");
+
+  const loadVisits = async (skip: number = 0) => {
+    try {
+      const data = await api<Visit[]>(`/api/visits?skip=${skip}&take=50`);
+      if (data.length === 0) {
+        setHasMore(false);
+      } else {
+        if (skip === 0) {
+          // Deduplicate initial load as well (in case API returns duplicates)
+          const uniqueVisits = Array.from(
+            new Map(data.map(v => [v.id, v])).values()
+          );
+          setVisits(uniqueVisits);
+        } else {
+          // Deduplicate visits by ID to prevent duplicate keys
+          setVisits((prev) => {
+            const existingIds = new Set(prev.map(v => v.id));
+            const newVisits = data.filter(v => !existingIds.has(v.id));
+            return [...prev, ...newVisits];
+          });
+        }
+        // If we got less than 50, there's no more data
+        if (data.length < 50) {
+          setHasMore(false);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to load visits:", error);
+      if (skip === 0) {
+        setVisits([]);
+      }
+    }
+  };
 
   useEffect(() => {
-    api<Visit[]>("/api/visits")
-      .then(setVisits)
-      .catch(() => setVisits([]))
-      .finally(() => setLoading(false));
+    setLoading(true);
+    loadVisits(0).finally(() => setLoading(false));
   }, []);
+
+  const handleLoadMore = async () => {
+    setLoadingMore(true);
+    await loadVisits(visits.length);
+    setLoadingMore(false);
+  };
 
   /* ===== Time formatter ===== */
   const formatTime = (time: string) => {
@@ -84,8 +146,30 @@ export default function VisitsPage() {
     });
   };
 
+  /* ===== Filter visits by SMS status ===== */
+  const filteredVisits = visits.filter((visit) => {
+    if (smsStatusFilter === "ALL") return true;
+    
+    const statuses = visit.smsJobs.map((job) => job.status);
+    
+    if (smsStatusFilter === "PENDING") {
+      return statuses.includes("PENDING");
+    }
+    if (smsStatusFilter === "SENT") {
+      return statuses.includes("SENT") && !statuses.includes("PENDING") && !statuses.includes("FAILED");
+    }
+    if (smsStatusFilter === "FAILED") {
+      return statuses.includes("FAILED");
+    }
+    if (smsStatusFilter === "SKIPPED") {
+      return statuses.includes("SKIPPED");
+    }
+    
+    return true;
+  });
+
   /* ===== Group visits by date (US time) ===== */
-  const groupedVisits = visits.reduce((groups, visit) => {
+  const groupedVisits = filteredVisits.reduce((groups, visit) => {
     const date = new Date(visit.startTime).toLocaleDateString("en-US", {
       timeZone: "America/New_York",
       weekday: "long",
@@ -182,13 +266,45 @@ export default function VisitsPage() {
       <div className="max-w-4xl mx-auto p-6 space-y-6">
 
         {/* Header */}
-        <div className="flex items-center gap-3">
-          <Link href="/dashboard">
-            <Button size="icon" variant="outline">
-              <ArrowLeftIcon />
-            </Button>
-          </Link>
-          <h1 className="text-3xl font-bold">Visits</h1>
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <Link href="/dashboard">
+              <Button size="icon" variant="outline">
+                <ArrowLeftIcon />
+              </Button>
+            </Link>
+            <h1 className="text-3xl font-bold">Visits</h1>
+          </div>
+
+          {/* Filter */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="gap-2">
+                <FilterIcon />
+                Filter: {smsStatusFilter === "ALL" ? "All Status" : smsStatusFilter}
+                <ChevronDownIcon />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuLabel>SMS Status</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setSmsStatusFilter("ALL")}>
+                All Status
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setSmsStatusFilter("PENDING")}>
+                Pending
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setSmsStatusFilter("SENT")}>
+                Sent
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setSmsStatusFilter("FAILED")}>
+                Failed
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setSmsStatusFilter("SKIPPED")}>
+                Skipped
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         {/* Visits */}
@@ -229,6 +345,37 @@ export default function VisitsPage() {
             })}
           </div>
         ))}
+
+        {/* Load More Button */}
+        {hasMore && (
+          <div className="flex justify-center pt-4">
+            <Button
+              onClick={handleLoadMore}
+              disabled={loadingMore}
+              variant="outline"
+              className="min-w-32"
+            >
+              {loadingMore ? "Loading..." : "Load More"}
+            </Button>
+          </div>
+        )}
+
+        {/* No more data message */}
+        {!hasMore && visits.length > 0 && (
+          <div className="text-center text-sm text-muted-foreground py-4">
+            No more visits to load
+          </div>
+        )}
+
+        {/* Empty state */}
+        {!loading && filteredVisits.length === 0 && (
+          <div className="text-center text-muted-foreground py-12">
+            <p className="text-lg">No visits found</p>
+            {smsStatusFilter !== "ALL" && (
+              <p className="text-sm mt-2">Try adjusting your filter</p>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

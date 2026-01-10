@@ -97,10 +97,15 @@ export async function POST(req: Request) {
   }
 }
 
-export async function GET() {
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const skip = Math.max(0, parseInt(searchParams.get("skip") || "0", 10));
+  const take = Math.min(100, Math.max(1, parseInt(searchParams.get("take") || "50", 10)));
+
   const visits = await prisma.visit.findMany({
     orderBy: { startTime: "desc" },
-    take: 50,
+    skip,
+    take,
     include: {
       caregiver: {
         select: { name: true },
